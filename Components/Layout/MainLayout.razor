@@ -1,0 +1,159 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@using TrabajoPracticoProgramacionMovilN6.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudThemeProvider Theme="@_temaTP6" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
+
+<MudLayout>
+    @* BARRA SUPERIOR *@
+    <MudAppBar Color="Color.Primary" Fixed="true" Elevation="4">
+        <MudText Typo="Typo.h6" Class="fw-bold">Gestión de Stock TP6</MudText>
+        <MudSpacer />
+
+        <AuthorizeView>
+            <Authorized>
+                <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Title="Mi Perfil" />
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="/login" Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Login" Class="mud-elevation-2">
+                    Ingresar
+                </MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    @* ¡ACÁ ESTABA EL PROBLEMA! Faltaba este bloque que contiene el @Body *@
+    <MudMainContent Class="pb-16" Style="background-color: var(--mud-palette-background); min-height: 100vh;">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+
+    @* BARRA INFERIOR (Única y dinámica) *@
+    <MudAppBar Bottom="true" Fixed="true" Style="background-color: #455A64;" Elevation="8" Class="px-1 py-2">
+
+        @* ESTE DIV ES EL QUE CENTRA TODO *@
+        <div class="d-flex justify-center w-100 gap-4">
+
+            @* INICIO *@
+            <MudButton Href="/" Style="@ObtenerEstiloBoton("/")" DisableRipple="true">
+                <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Inicio</MudText>
+            </MudButton>
+
+            @* CATÁLOGO *@
+            <MudButton Href="/catalogo" Style="@ObtenerEstiloBoton("/catalogo")" DisableRipple="true">
+                <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Catálogo</MudText>
+            </MudButton>
+
+            @* ZONA ADMIN *@
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <MudButton Href="/ingresos" Style="@ObtenerEstiloBoton("/ingresos")" DisableRipple="true">
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" />
+                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Ingresos</MudText>
+                    </MudButton>
+
+                    <MudButton Href="/reportes" Style="@ObtenerEstiloBoton("/reportes")" DisableRipple="true">
+                        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Medium" />
+                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Reportes</MudText>
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+
+            @* ZONA CLIENTE *@
+            <AuthorizeView Roles="Cliente">
+                <Authorized>
+                    <MudButton Href="/carrito" Style="@ObtenerEstiloBoton("/carrito")" DisableRipple="true">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" />
+                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Carrito</MudText>
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+
+            @* LOGOUT *@
+            <AuthorizeView>
+                <Authorized>
+                    <MudButton OnClick="CerrarSesion" Style="@ObtenerEstiloBoton("/logout")" DisableRipple="true">
+                        <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Medium" />
+                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Salir</MudText>
+                    </MudButton>
+                </Authorized>
+            </AuthorizeView>
+
+        </div>
+    </MudAppBar>
+</MudLayout>
+
+@code {
+    private MudTheme _temaTP6 = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#607D8B",
+            Secondary = "#CDDC39",
+            AppbarBackground = "#455A64",
+            Background = "#CFD8DC",
+            Surface = "#ECEFF1",
+            TextPrimary = "#263238",
+            TextSecondary = "#546E7A"
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += AlCambiarDeRuta;
+    }
+
+    private void AlCambiarDeRuta(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= AlCambiarDeRuta;
+    }
+
+    private string ObtenerEstiloBoton(string href)
+    {
+        var rutaActual = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
+        var rutaFormateada = $"/{rutaActual}";
+
+        string estiloBase = "flex-direction: column; height: 100%; min-width: 65px; border-radius: 12px; transition: all 0.3s ease; text-transform: none;";
+
+        bool esBotonActivo = false;
+
+        if (href == "/")
+        {
+            esBotonActivo = string.IsNullOrEmpty(rutaActual);
+        }
+        else
+        {
+            esBotonActivo = (rutaFormateada.Contains(href.ToLower()) && href != "/logout");
+        }
+
+        if (esBotonActivo)
+        {
+            return estiloBase + "color: #EEFF41; background-color: rgba(238, 255, 65, 0.15); box-shadow: 0 0 12px rgba(238, 255, 65, 0.2); font-weight: bold;";
+        }
+
+        return estiloBase + "color: #AFB42B; background-color: transparent;";
+    }
+
+    private void CerrarSesion()
+    {
+        AuthService.Logout();
+        var customAuthStateProvider = (CustomAuthStateProvider)AuthStateProvider;
+        customAuthStateProvider.MarcarComoDeslogueado();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

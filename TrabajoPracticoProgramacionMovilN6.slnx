@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="TrabajoPracticoProgramacionMovilN6/TrabajoPracticoProgramacionMovilN6.csproj" />
+  <Project Path="TrabajoPracticoProgramacionMovilN6.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>

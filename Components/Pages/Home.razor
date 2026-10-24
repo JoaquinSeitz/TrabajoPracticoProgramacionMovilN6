@@ -1,0 +1,41 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudCard Elevation="4" Class="pa-6 rounded-lg border-t-4" Style="border-top-color: var(--mud-palette-secondary);">
+        <MudCardHeader Class="d-flex justify-center pb-0">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory" Style="font-size: 4rem; color: var(--mud-palette-primary);" />
+        </MudCardHeader>
+        <MudCardContent>
+            <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="fw-bold mb-2">
+                Gestión de Stock TP6
+            </MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mud-text-secondary mb-4">
+                Módulo Administrativo y Catálogo Móvil
+            </MudText>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                Bienvenido al sistema. Utilizá la barra de navegación inferior para acceder a las distintas herramientas según tu rol.
+            </MudText>
+
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4" Style="border-color: var(--mud-palette-primary);">
+                        Estás conectado como <b>Administrador</b>. Tenés acceso a registrar Ingresos y descargar Reportes PDF.
+                    </MudAlert>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Roles="Cliente">
+                <Authorized>
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mt-4" Style="border-color: var(--mud-palette-secondary);">
+                        Estás conectado como <b>Cliente</b>. Podés explorar el catálogo y armar tu carrito de compras.
+                    </MudAlert>
+                </Authorized>
+            </AuthorizeView>
+
+        </MudCardContent>
+    </MudCard>
+</MudContainer>

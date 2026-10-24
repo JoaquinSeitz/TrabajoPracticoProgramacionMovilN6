@@ -1,0 +1,51 @@
+﻿@page "/carrito"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Cliente, Admin")]
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4 mb-16">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" GutterBottom="true"><b>Mi Carrito</b></MudText>
+
+    <MudPaper Elevation="3" Class="pa-4 mt-4" Style="border-radius: 8px;">
+        @* LISTA DE ÍTEMS DEL CARRITO (Alex iterará esto con su servicio de estado) *@
+        <MudList T="string">
+            @for (int i = 0; i < 3; i++)
+            {
+                <MudListItem>
+                    <div class="d-flex justify-space-between align-center w-100">
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium" Class="mr-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Inventory" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="fw-bold">Producto de Ejemplo</MudText>
+                                <MudText Typo="Typo.body2" Style="color: #78909C;">Cantidad: 2</MudText>
+                            </div>
+                        </div>
+                        <div class="d-flex align-center">
+                            <MudText Typo="Typo.subtitle1" Class="mr-4">$ 3.000,00</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+                        </div>
+                    </div>
+                </MudListItem>
+                <MudDivider />
+            }
+        </MudList>
+
+        @* RESUMEN Y CHECKOUT *@
+        <div class="d-flex justify-space-between align-center mt-6 mb-4 px-4">
+            <MudText Typo="Typo.h5" Color="Color.Primary">Total a Pagar:</MudText>
+            <MudText Typo="Typo.h4" Color="Color.Secondary" Class="fw-bold">$ 9.000,00</MudText>
+        </div>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" FullWidth="true" Class="mud-elevation-8 mt-2" StartIcon="@Icons.Material.Filled.Payment">
+            Simular Pago y Finalizar
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    // TODO Alex:
+    // 1. Inyectar servicio de estado del Carrito
+    // 2. Armar lógica de calcular Total
+    // 3. Conectar botón de pago con el POST a la API (Ventas)
+}

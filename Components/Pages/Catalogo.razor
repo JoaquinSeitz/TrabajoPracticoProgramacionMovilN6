@@ -1,0 +1,44 @@
+﻿@page "/catalogo"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-16">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" GutterBottom="true"><b>Catálogo de Productos</b></MudText>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-6" Style="color: #78909C;">
+        Explorá nuestro inventario y agregá los productos al carrito.
+    </MudText>
+
+    @* GRILLA DE PRODUCTOS (Alex iterará esto con su lista de la API) *@
+    <MudGrid>
+        @for (int i = 0; i < 6; i++)
+        {
+            <MudItem xs="6" sm="4" md="3">
+                <MudCard Elevation="4" Style="border-radius: 8px; height: 100%; display: flex; flex-direction: column;">
+                    @* Espacio para la imagen que Alex traerá de wwwroot *@
+                    <MudCardMedia Image="https://placehold.co/400x300?text=Imagen+Producto" Height="140" />
+
+                    <MudCardContent Class="flex-grow-1">
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold" Color="Color.Primary">Producto Base</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #78909C;">Categoría</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">$ 1.500,00</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #546E7A;">Stock disponible: 10</MudText>
+                    </MudCardContent>
+
+                    <MudCardActions Class="d-flex justify-end pa-3">
+                        @* Botón Lima para agregar al carrito *@
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small" StartIcon="@Icons.Material.Filled.AddShoppingCart" Class="mud-elevation-4">
+                            Agregar
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    // TODO Alex:
+    // 1. Inyectar HttpClient
+    // 2. Crear método OnInitializedAsync para hacer el GET a la API
+    // 3. Crear servicio en memoria para manejar el estado del Carrito
+}

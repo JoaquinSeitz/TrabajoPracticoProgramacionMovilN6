@@ -1,0 +1,244 @@
+﻿@page "/ingresos"
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Json
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    @* ENCABEZADO CON DESCRIPCIÓN CENTRADA *@
+    <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" GutterBottom="true"><b>Ingreso de Mercadería</b></MudText>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mud-text-secondary mb-6">
+        Busque el producto en el catálogo, asigne la cantidad entrante y valide el impacto para mantener el stock actualizado en tiempo real.
+    </MudText>
+
+    <MudText Typo="Typo.subtitle2" Color="Color.Info" Class="mb-2">
+        Productos cargados: @productos.Count
+    </MudText>
+
+    <MudPaper Elevation="3" Class="pa-6">
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <div style="position: relative;">
+                    <MudTextField T="string"
+                                  Label="Buscar Producto"
+                                  @bind-Value="txtBusqueda"
+                                  @bind-Value:after="AlEscribir"
+                                  Immediate="true"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  OnFocus="MostrarListaCompleta" />
+
+                    @if (mostrarDropdown && sugerencias.Any())
+                    {
+                        <MudPaper Elevation="4" Style="position: absolute; top: 100%; left: 0; right: 0; z-index: 100; max-height: 250px; overflow-y: auto;">
+                            <MudList T="ProductoResponseDTO" Clickable="true">
+                                @foreach (var prod in sugerencias)
+                                {
+                                    <MudListItem OnClick="() => SeleccionarProducto(prod)">
+                                        <MudText>
+                                            @prod.Nombre
+                                            <MudChip T="string" Size="Size.Small" Style="background-color: #ECEFF1; color: #546E7A;" Class="ms-2">Stock: @prod.Stock</MudChip>
+                                        </MudText>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        </MudPaper>
+                    }
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField T="int" Label="Cantidad a Ingresar" @bind-Value="cantidadAIngresar" Variant="Variant.Outlined" Min="1" Max="1000" />
+            </MudItem>
+            <MudItem xs="12" Class="d-flex justify-end mt-4">
+                @* Botón actualizado al color Lima de la paleta con elevación *@
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Save" OnClick="RegistrarIngreso" Disabled="@_cargando" Class="mud-elevation-8">
+                    @if (_cargando)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                        <MudText Class="ms-2">Validando...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Registrar Ingreso</MudText>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private bool _cargando = false;
+    private int cantidadAIngresar = 1;
+    private List<ProductoResponseDTO> productos = new();
+    private ProductoResponseDTO? productoSeleccionado;
+
+    private string txtBusqueda = "";
+    private bool mostrarDropdown = false;
+    private List<ProductoResponseDTO> sugerencias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarProductos();
+    }
+
+    private async Task CargarProductos()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<List<ProductoResponseDTO>>("/api/Productos?pageSize=100");
+            if (response != null)
+            {
+                productos = response;
+                sugerencias = productos;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar el catálogo: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void AlEscribir()
+    {
+        productoSeleccionado = null;
+        if (string.IsNullOrWhiteSpace(txtBusqueda))
+        {
+            sugerencias = productos;
+        }
+        else
+        {
+            sugerencias = productos
+                .Where(p => p.Nombre.Contains(txtBusqueda, StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
+        }
+        mostrarDropdown = true;
+    }
+
+    private void MostrarListaCompleta()
+    {
+        if (string.IsNullOrWhiteSpace(txtBusqueda))
+        {
+            sugerencias = productos;
+        }
+        mostrarDropdown = true;
+    }
+
+    private void SeleccionarProducto(ProductoResponseDTO prod)
+    {
+        productoSeleccionado = prod;
+        txtBusqueda = prod.Nombre;
+        mostrarDropdown = false;
+    }
+
+    private async Task RegistrarIngreso()
+    {
+        if (productoSeleccionado == null)
+        {
+            Snackbar.Add("Por favor, seleccione un producto de la lista desplegable.", Severity.Warning);
+            return;
+        }
+
+        if (cantidadAIngresar <= 0 || cantidadAIngresar > 1000)
+        {
+            Snackbar.Add("La cantidad debe estar entre 1 y 1000 unidades.", Severity.Warning);
+            return;
+        }
+
+        int nuevoStock = productoSeleccionado.Stock + cantidadAIngresar;
+
+        MarkupString mensajeHtml = new MarkupString(
+            $"<div style='text-align: center; padding: 5px;'>" +
+            $"<p style='font-size: 16px; margin-bottom: 10px;'>¿Confirma agregar <b>{cantidadAIngresar}</b> unidades de <br/><span style='color: #827717; font-size: 18px; font-weight: bold;'>{productoSeleccionado.Nombre}</span>?</p>" +
+            $"<div style='display: flex; justify-content: space-around; background-color: #ECEFF1; padding: 10px; border-radius: 8px;'>" +
+            $"<div><span style='color: #546E7A; font-size: 12px;'>Stock actual</span><br/><b style='font-size: 16px;'>{productoSeleccionado.Stock}</b></div>" +
+            $"<div><span style='color: #546E7A; font-size: 12px;'>Nuevo stock</span><br/><b style='color: #AFB42B; font-size: 18px;'>{nuevoStock}</b></div>" +
+            $"</div></div>"
+        );
+
+        bool? confirmado = await DialogService.ShowMessageBoxAsync(
+            "Validación de Stock",
+            markupMessage: mensajeHtml,
+            yesText: "Confirmar y Guardar",
+            cancelText: "Cancelar"
+        );
+
+        if (confirmado != true) return;
+
+        _cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            // Armamos el DTO exactamente como lo pide tu IngresoProductosController
+            var ingresoDto = new IngresoProductoRequestDTO
+            {
+                ProveedorId = 1, // Podés cambiarlo por un ID válido de tu BD o agregar un Dropdown después
+                UsuarioId = 1,   // Idealmente sacar esto del ClaimsPrincipal, por ahora forzamos un ID válido
+                Detalles = new List<DetalleMovimientoRequestDTO>
+                {
+                    new DetalleMovimientoRequestDTO
+                    {
+                        ProductoId = productoSeleccionado.ProductoId,
+                        Cantidad = cantidadAIngresar
+                    }
+                }
+            };
+
+            // Le pegamos a la ruta correcta de tu controlador
+            var response = await Http.PostAsJsonAsync("/api/IngresoProductos", ingresoDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Ingreso registrado correctamente. Nuevo stock: {nuevoStock}", Severity.Success);
+
+                cantidadAIngresar = 1;
+                productoSeleccionado = null;
+                txtBusqueda = "";
+                mostrarDropdown = false;
+
+                await CargarProductos(); // Refresca la lista para mostrar el stock real
+            }
+        }
+        catch (Exception)
+        {
+            // Catch de seguridad por si falla la red (el interceptor ya avisa visualmente)
+        }
+        finally
+        {
+            _cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    // --- CLASES DTO AJUSTADAS A TU BACKEND ---
+
+    public class ProductoResponseDTO
+    {
+        public int ProductoId { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
+        public int Stock { get; set; }
+        public string? Imagen { get; set; }
+        public int CategoriaId { get; set; }
+        public string CategoriaNombre { get; set; } = string.Empty;
+    }
+
+    public class IngresoProductoRequestDTO
+    {
+        public int ProveedorId { get; set; }
+        public int UsuarioId { get; set; }
+        public List<DetalleMovimientoRequestDTO> Detalles { get; set; } = new();
+    }
+
+    public class DetalleMovimientoRequestDTO
+    {
+        public int ProductoId { get; set; }
+        public int Cantidad { get; set; }
+    }
+}

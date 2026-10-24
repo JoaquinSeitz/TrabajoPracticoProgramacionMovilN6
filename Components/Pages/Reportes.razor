@@ -1,0 +1,161 @@
+﻿@page "/reportes"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8 mb-16">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" GutterBottom="true"><b>Reportes del Sistema</b></MudText>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-6 mud-text-secondary">
+        Genere y descargue los documentos consolidados en formato PDF.
+    </MudText>
+
+    <MudGrid Class="justify-center">
+        @* 1. REPORTE DE STOCK *@
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="4" Style="border-radius: 8px; height: 100%; display: flex; flex-direction: column;">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6" Color="Color.Primary">Reporte de Stock</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="flex-grow-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Genera una instantánea del stock disponible, detallando cantidad y precio de cada producto activo.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions Class="d-flex justify-end pa-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="DescargarPdfStock" Disabled="@_descargandoStock">
+                        @if (_descargandoStock)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                        }
+                        else
+                        {
+                            <MudText>Generar</MudText>
+                        }
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+
+        @* 2. AUDITORÍA DE VENTAS *@
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="4" Style="border-radius: 8px; height: 100%; display: flex; flex-direction: column;">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Info" Variant="Variant.Outlined">
+                            <MudIcon Icon="@Icons.Material.Filled.PointOfSale" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6" Color="Color.Primary">Auditoría de Ventas</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="flex-grow-1">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Listado histórico de todas las salidas registradas y la recaudación total consolidada.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions Class="d-flex justify-end pa-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="DescargarAuditoriaVentas" Disabled="@_descargandoVentas">
+                        @if (_descargandoVentas)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                        }
+                        else
+                        {
+                            <MudText>Generar</MudText>
+                        }
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+
+        @* 3. AUDITORÍA DE INGRESOS *@
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="4" Style="border-radius: 8px; height: 100%; display: flex; flex-direction: column;">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Success" Variant="Variant.Outlined">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6" Color="Color.Primary">Auditoría de Ingresos</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="flex-grow-1">
+                    <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                        Listado histórico de todas las entradas de mercadería al inventario.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions Class="d-flex justify-end pa-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="DescargarAuditoriaIngresos" Disabled="@_descargandoIngresos">
+                        @if (_descargandoIngresos)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                        }
+                        else
+                        {
+                            <MudText>Generar</MudText>
+                        }
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private bool _descargandoStock = false;
+    private bool _descargandoVentas = false;
+    private bool _descargandoIngresos = false;
+
+    private async Task DescargarPdfStock()
+    {
+        _descargandoStock = true;
+        await ProcesarDescarga("/api/Reportes/stock", $"ReporteStock_{DateTime.Now:ddMMyyyy}.pdf");
+        _descargandoStock = false;
+    }
+
+    private async Task DescargarAuditoriaVentas()
+    {
+        _descargandoVentas = true;
+        await ProcesarDescarga("/api/Reportes/auditoria-ventas", $"AuditoriaVentas_{DateTime.Now:ddMMyyyy}.pdf");
+        _descargandoVentas = false;
+    }
+
+    private async Task DescargarAuditoriaIngresos()
+    {
+        _descargandoIngresos = true;
+        await ProcesarDescarga("/api/Reportes/auditoria-ingresos", $"AuditoriaIngresos_{DateTime.Now:ddMMyyyy}.pdf");
+        _descargandoIngresos = false;
+    }
+
+    private async Task ProcesarDescarga(string url, string nombreArchivo)
+    {
+        try
+        {
+            var pdfBytes = await Http.GetByteArrayAsync(url);
+            var base64 = Convert.ToBase64String(pdfBytes);
+
+            await JS.InvokeVoidAsync("descargarArchivo", nombreArchivo, "application/pdf", base64);
+            Snackbar.Add($"{nombreArchivo} descargado exitosamente.", Severity.Success);
+        }
+        catch (HttpRequestException)
+        {
+            Snackbar.Add("No se pudo generar el documento. Verifique que existan registros.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error interno: {ex.Message}", Severity.Error);
+        }
+    }
+}

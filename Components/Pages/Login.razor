@@ -1,0 +1,70 @@
+﻿@page "/login"
+@using TrabajoPracticoProgramacionMovilN6.Services
+@inject AuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="4" Class="pa-6 rounded-lg">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary"><b>Iniciar Sesión</b></MudText>
+                <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2">Ingresá tus credenciales para continuar</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTextField @bind-Value="email" Label="Correo Electrónico" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
+            <MudTextField @bind-Value="password" Label="Contraseña" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+        </MudCardContent>
+        <MudCardActions Class="d-flex justify-center mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" OnClick="EjecutarLogin" Disabled="@_cargando">
+                @if (_cargando)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                    <MudText Class="ms-2">Conectando...</MudText>
+                }
+                else
+                {
+                    <MudText>Ingresar</MudText>
+                }
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string email = "";
+    private string password = "";
+    private bool _cargando = false;
+
+    private async Task EjecutarLogin()
+    {
+        _cargando = true;
+        StateHasChanged();
+
+        // 1. Enviamos las credenciales a tu API mediante el AuthService
+        var exito = await AuthService.LoginAsync(email, password);
+
+        if (exito)
+        {
+            // 2. Si la API da el OK, leemos la bóveda nativa para sacar los datos guardados
+            var nombre = await SecureStorage.Default.GetAsync("user_name");
+            var rol = await SecureStorage.Default.GetAsync("user_role");
+
+            // 3. Le avisamos a nuestro "vigilante" de Blazor que active la sesión y los menús
+            var customAuthStateProvider = (CustomAuthStateProvider)AuthStateProvider;
+            customAuthStateProvider.MarcarComoAutenticado(nombre ?? "Usuario", rol ?? "Cliente");
+
+            // 4. Mostramos una alerta bonita y mandamos al usuario al Inicio
+            Snackbar.Add($"¡Hola, {nombre}!", Severity.Success);
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            Snackbar.Add("Credenciales incorrectas o error de servidor.", Severity.Error);
+        }
+
+        _cargando = false;
+    }
+}
