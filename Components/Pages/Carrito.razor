@@ -1,51 +1,120 @@
 ﻿@page "/carrito"
 @using Microsoft.AspNetCore.Authorization
+@using TrabajoPracticoProgramacionMovilN6.Models
+@using TrabajoPracticoProgramacionMovilN6.Services
 @attribute [Authorize(Roles = "Cliente, Admin")]
+@inject CarritoService ServicioCarrito
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4 mb-16">
     <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" GutterBottom="true"><b>Mi Carrito</b></MudText>
 
-    <MudPaper Elevation="3" Class="pa-4 mt-4" Style="border-radius: 8px;">
-        @* LISTA DE ÍTEMS DEL CARRITO (Alex iterará esto con su servicio de estado) *@
-        <MudList T="string">
-            @for (int i = 0; i < 3; i++)
-            {
-                <MudListItem>
-                    <div class="d-flex justify-space-between align-center w-100">
-                        <div class="d-flex align-center">
-                            <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium" Class="mr-3">
-                                <MudIcon Icon="@Icons.Material.Filled.Inventory" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="fw-bold">Producto de Ejemplo</MudText>
-                                <MudText Typo="Typo.body2" Style="color: #78909C;">Cantidad: 2</MudText>
+    @if (!ServicioCarrito.Items.Any())
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">Tu carrito está vacío. ¡Ve al catálogo para agregar productos!</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="3" Class="pa-4 mt-4" Style="border-radius: 8px;">
+
+            <MudList T="string">
+                @foreach (var item in ServicioCarrito.Items)
+                {
+                    <MudListItem T="string">
+                        <div class="d-flex justify-space-between align-center w-100">
+                            <div class="d-flex align-center">
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium" Class="mr-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="fw-bold">@item.Nombre</MudText>
+                                    <MudText Typo="Typo.body2" Style="color: #78909C;">Cantidad: @item.Cantidad</MudText>
+                                </div>
+                            </div>
+                            <div class="d-flex align-center">
+                                <MudText Typo="Typo.subtitle1" Class="mr-4">@item.Subtotal.ToString("C")</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="() => ServicioCarrito.RemoverDelCarrito(item.ProductoId)" />
                             </div>
                         </div>
-                        <div class="d-flex align-center">
-                            <MudText Typo="Typo.subtitle1" Class="mr-4">$ 3.000,00</MudText>
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
-                        </div>
-                    </div>
-                </MudListItem>
-                <MudDivider />
-            }
-        </MudList>
+                    </MudListItem>
+                    <MudDivider />
+                }
+            </MudList>
 
-        @* RESUMEN Y CHECKOUT *@
-        <div class="d-flex justify-space-between align-center mt-6 mb-4 px-4">
-            <MudText Typo="Typo.h5" Color="Color.Primary">Total a Pagar:</MudText>
-            <MudText Typo="Typo.h4" Color="Color.Secondary" Class="fw-bold">$ 9.000,00</MudText>
-        </div>
+            <div class="d-flex justify-space-between align-center mt-6 mb-4 px-4">
+                <MudText Typo="Typo.h5" Color="Color.Primary">Total a Pagar:</MudText>
+                <MudText Typo="Typo.h4" Color="Color.Secondary" Class="fw-bold">@ServicioCarrito.ObtenerTotal().ToString("C")</MudText>
+            </div>
 
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" FullWidth="true" Class="mud-elevation-8 mt-2" StartIcon="@Icons.Material.Filled.Payment">
-            Simular Pago y Finalizar
-        </MudButton>
-    </MudPaper>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Large"
+                       FullWidth="true"
+                       Class="mud-elevation-8 mt-2"
+                       StartIcon="@Icons.Material.Filled.Payment"
+                       Disabled="@procesandoPago"
+                       OnClick="FinalizarCompra">
+                @(procesandoPago ? "Procesando pago..." : "Simular Pago y Finalizar")
+            </MudButton>
+        </MudPaper>
+    }
 </MudContainer>
 
 @code {
-    // TODO Alex:
-    // 1. Inyectar servicio de estado del Carrito
-    // 2. Armar lógica de calcular Total
-    // 3. Conectar botón de pago con el POST a la API (Ventas)
+    private bool procesandoPago = false;
+
+    protected override void OnInitialized()
+    {
+        ServicioCarrito.OnCarritoActualizado += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        ServicioCarrito.OnCarritoActualizado -= StateHasChanged;
+    }
+
+    private async Task FinalizarCompra()
+    {
+        procesandoPago = true;
+
+        var request = new SalidaProductoRequest
+        {
+            ClienteId = 1,
+            UsuarioId = 1,
+            Detalles = ServicioCarrito.Items.Select(i => new DetalleMovimientoRequest
+            {
+                ProductoId = i.ProductoId,
+                Cantidad = i.Cantidad
+            }).ToList()
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("https://localhost:7133/api/SalidaProductos", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("¡Pago exitoso! El ticket fue enviado a tu correo.", Severity.Success);
+                ServicioCarrito.VaciarCarrito();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al procesar: {error}", Severity.Error);
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Ocurrió un error de conexión con el servidor.", Severity.Error);
+        }
+        finally
+        {
+            procesandoPago = false;
+        }
+    }
 }

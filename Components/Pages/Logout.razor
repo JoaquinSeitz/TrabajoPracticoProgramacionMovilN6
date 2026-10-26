@@ -4,6 +4,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject CarritoService ServicioCarrito
 
 @code {
     protected override void OnInitialized()
@@ -18,5 +19,7 @@
         // 3. Mostramos un mensaje y lo pateamos a la pantalla de Login
         Snackbar.Add("Sesión cerrada correctamente", Severity.Info);
         Navigation.NavigateTo("/login");
+
+        ServicioCarrito.VaciarCarrito(); // Agrega esta línea justo antes o después de borrar el token JWT
     }
 }

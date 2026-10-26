@@ -43,20 +43,29 @@
         _cargando = true;
         StateHasChanged();
 
-        // 1. Enviamos las credenciales a tu API mediante el AuthService
         var exito = await AuthService.LoginAsync(email, password);
 
         if (exito)
         {
-            // 2. Si la API da el OK, leemos la bóveda nativa para sacar los datos guardados
             var nombre = await SecureStorage.Default.GetAsync("user_name");
             var rol = await SecureStorage.Default.GetAsync("user_role");
 
-            // 3. Le avisamos a nuestro "vigilante" de Blazor que active la sesión y los menús
+            // Bloqueo de seguridad para el rol Operador
+            if (rol == "Operador")
+            {
+                // Limpiamos los rastros que haya guardado el AuthService
+                SecureStorage.Default.Remove("jwt_token");
+                SecureStorage.Default.Remove("user_name");
+                SecureStorage.Default.Remove("user_role");
+
+                Snackbar.Add("Acceso denegado. Los operadores solo pueden usar el sistema web interno.", Severity.Error);
+                _cargando = false;
+                return;
+            }
+
             var customAuthStateProvider = (CustomAuthStateProvider)AuthStateProvider;
             customAuthStateProvider.MarcarComoAutenticado(nombre ?? "Usuario", rol ?? "Cliente");
 
-            // 4. Mostramos una alerta bonita y mandamos al usuario al Inicio
             Snackbar.Add($"¡Hola, {nombre}!", Severity.Success);
             Navigation.NavigateTo("/");
         }
