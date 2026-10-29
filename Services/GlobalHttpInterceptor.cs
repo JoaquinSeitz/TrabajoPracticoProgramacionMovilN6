@@ -29,8 +29,13 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
                 // 2. DESPUÉS dejamos que la petición viaje al backend
                 var response = await base.SendAsync(request, cancellationToken);
 
-                // 3. Si el backend responde con un código de error, lo atrapamos aquí
-                if (!response.IsSuccessStatusCode)
+                // Verificamos si la petición fue dirigida a los endpoints de autenticación
+                bool esEndpointDeAuth = request.RequestUri != null &&
+                                        (request.RequestUri.AbsolutePath.Contains("/login", StringComparison.OrdinalIgnoreCase) ||
+                                         request.RequestUri.AbsolutePath.Contains("/registro", StringComparison.OrdinalIgnoreCase));
+
+                // 3. Si hay error Y NO es una petición de Auth, mostramos los mensajes globales
+                if (!response.IsSuccessStatusCode && !esEndpointDeAuth)
                 {
                     switch (response.StatusCode)
                     {
@@ -58,7 +63,6 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
             catch (TaskCanceledException)
             {
                 // Atrapamos la cancelación generada al cambiar de página o cerrar sesión abruptamente
-                // Retornamos un 408 (Request Timeout) de forma silenciosa para que la app no crashee
                 return new HttpResponseMessage(HttpStatusCode.RequestTimeout);
             }
             catch (HttpRequestException)

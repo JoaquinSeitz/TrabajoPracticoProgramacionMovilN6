@@ -1,11 +1,14 @@
 ﻿@page "/carrito"
 @using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
 @using TrabajoPracticoProgramacionMovilN6.Models
 @using TrabajoPracticoProgramacionMovilN6.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @attribute [Authorize(Roles = "Cliente, Admin")]
 @inject CarritoService ServicioCarrito
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
 @implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4 mb-16">
@@ -22,25 +25,34 @@
             <MudList T="string">
                 @foreach (var item in ServicioCarrito.Items)
                 {
-                    <MudListItem T="string">
-                        <div class="d-flex justify-space-between align-center w-100">
-                            <div class="d-flex align-center">
-                                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Medium" Class="mr-3">
-                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" />
+                    <MudListItem T="string" Class="pa-2">
+                        @* REEMPLAZO RESPONSIVE: MudGrid evita que los elementos se solapen *@
+                        <MudGrid Spacing="1" AlignItems="AlignItems.Center" Class="w-100 m-0">
+
+                            @* 1. Columna del Ícono *@
+                            <MudItem xs="2" sm="1" Class="d-flex justify-center">
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" />
                                 </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="fw-bold">@item.Nombre</MudText>
-                                    <MudText Typo="Typo.body2" Style="color: #78909C;">Cantidad: @item.Cantidad</MudText>
-                                </div>
-                            </div>
-                            <div class="d-flex align-center">
-                                <MudText Typo="Typo.subtitle1" Class="mr-4">@item.Subtotal.ToString("C")</MudText>
+                            </MudItem>
+
+                            @* 2. Columna del Texto (Usa text-truncate para cortar textos largos) *@
+                            <MudItem xs="6" sm="7" Class="overflow-hidden">
+                                <MudText Typo="Typo.body1" Color="Color.Primary" Class="fw-bold text-truncate">@item.Nombre</MudText>
+                                <MudText Typo="Typo.caption" Style="color: #78909C;">Cantidad: @item.Cantidad</MudText>
+                            </MudItem>
+
+                            @* 3. Columna del Precio y Borrar *@
+                            <MudItem xs="4" sm="4" Class="d-flex justify-end align-center px-0">
+                                @* ACÁ APLICAMOS EL COLOR AL SUBTOTAL DEL ITEM *@
+                                <MudText Typo="Typo.body2" Class="mr-2 fw-bold" Style="color: #28424f;">@item.Subtotal.ToString("C")</MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                Color="Color.Error"
                                                Size="Size.Small"
                                                OnClick="() => ServicioCarrito.RemoverDelCarrito(item.ProductoId)" />
-                            </div>
-                        </div>
+                            </MudItem>
+
+                        </MudGrid>
                     </MudListItem>
                     <MudDivider />
                 }
@@ -48,7 +60,8 @@
 
             <div class="d-flex justify-space-between align-center mt-6 mb-4 px-4">
                 <MudText Typo="Typo.h5" Color="Color.Primary">Total a Pagar:</MudText>
-                <MudText Typo="Typo.h4" Color="Color.Secondary" Class="fw-bold">@ServicioCarrito.ObtenerTotal().ToString("C")</MudText>
+                @* ACÁ APLICAMOS EL COLOR AL TOTAL GENERAL *@
+                <MudText Typo="Typo.h4" Class="fw-bold" Style="color: #28424f;">@ServicioCarrito.ObtenerTotal().ToString("C")</MudText>
             </div>
 
             <MudButton Variant="Variant.Filled"
@@ -82,19 +95,39 @@
     {
         procesandoPago = true;
 
-        var request = new SalidaProductoRequest
-        {
-            ClienteId = 1,
-            UsuarioId = 1,
-            Detalles = ServicioCarrito.Items.Select(i => new DetalleMovimientoRequest
-            {
-                ProductoId = i.ProductoId,
-                Cantidad = i.Cantidad
-            }).ToList()
-        };
-
         try
         {
+            // 1. Extraemos los datos del usuario logueado en ese momento
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Buscamos el ID del usuario en los Claims (ClaimTypes.NameIdentifier)
+            var claimId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            // Si por algún motivo no encontramos el ID, asignamos un valor por defecto (como el 1),
+            // aunque estando bajo [Authorize], el ClaimId debería existir siempre.
+            int usuarioIdReal = 1;
+            if (!string.IsNullOrEmpty(claimId))
+            {
+                int.TryParse(claimId, out usuarioIdReal);
+            }
+
+            // 2. Construimos la petición enviando el ID del usuario que realmente está comprando
+            var request = new SalidaProductoRequest
+            {
+                // En un sistema real, un Usuario puede ser distinto a un Cliente,
+                // pero según la lógica de tu login de clientes, al registrarse se crean en ambas tablas con los mismos datos base.
+                // Como simplificación para este flujo, asignamos el ID del usuario logueado a ambas propiedades.
+                ClienteId = usuarioIdReal,
+                UsuarioId = usuarioIdReal,
+                Detalles = ServicioCarrito.Items.Select(i => new DetalleMovimientoRequest
+                {
+                    ProductoId = i.ProductoId,
+                    Cantidad = i.Cantidad
+                }).ToList()
+            };
+
+            // 3. Enviamos la petición al backend
             var response = await Http.PostAsJsonAsync("https://localhost:7133/api/SalidaProductos", request);
 
             if (response.IsSuccessStatusCode)
@@ -108,9 +141,9 @@
                 Snackbar.Add($"Error al procesar: {error}", Severity.Error);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            Snackbar.Add("Ocurrió un error de conexión con el servidor.", Severity.Error);
+            Snackbar.Add($"Ocurrió un error de conexión con el servidor. {ex.Message}", Severity.Error);
         }
         finally
         {

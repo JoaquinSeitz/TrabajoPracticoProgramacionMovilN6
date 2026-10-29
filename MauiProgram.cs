@@ -22,7 +22,6 @@ namespace TrabajoPracticoProgramacionMovilN6
 
             // --- CONFIGURACIÓN DEL HTTP CLIENT (CON BYPASS SSL E INTERCEPTOR) ---
             string urlApi = "https://localhost:7133";
-
 #if ANDROID
             // Android requiere esta IP especial para salir al localhost de tu PC
             urlApi = "https://10.0.2.2:7133";
@@ -57,6 +56,7 @@ namespace TrabajoPracticoProgramacionMovilN6
             // Lo registramos como Scoped (o Singleton) para que mantenga su estado mientras la app esté abierta
             builder.Services.AddScoped<Services.CarritoService>();
             builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, Services.CustomAuthStateProvider>();
+
 
             return builder.Build();
         }

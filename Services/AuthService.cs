@@ -11,48 +11,57 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
             _httpClient = httpClient;
         }
 
-        // Método para enviar las credenciales a la API
-        public async Task<bool> LoginAsync(string email, string password)
+        // Ahora devuelve una tupla: (bool EsExitoso, string Mensaje)
+        public async Task<(bool Exito, string Mensaje)> LoginAsync(string email, string password)
         {
-            var loginData = new { Email = email, Password = password };
-
-            // Hacemos el POST a tu endpoint
-            var response = await _httpClient.PostAsJsonAsync("/api/Usuarios/login", loginData);
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                // Mapeamos la respuesta completa según tu JSON
-                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                var loginData = new { Email = email, Password = password };
+                var response = await _httpClient.PostAsJsonAsync("/api/Usuarios/login", loginData);
 
-                if (result != null && !string.IsNullOrEmpty(result.Token))
+                if (response.IsSuccessStatusCode)
                 {
-                    // Guardamos el token en la bóveda segura del celular
-                    await SecureStorage.Default.SetAsync("jwt_token", result.Token);
+                    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
-                    // (Opcional) Podés guardar el nombre y rol si querés usarlos rápido en la UI sin decodificar el token
-                    await SecureStorage.Default.SetAsync("user_name", result.Nombre);
-                    await SecureStorage.Default.SetAsync("user_role", result.Rol);
+                    if (result != null && !string.IsNullOrEmpty(result.Token))
+                    {
+                        await SecureStorage.Default.SetAsync("jwt_token", result.Token);
+                        await SecureStorage.Default.SetAsync("user_name", result.Nombre);
+                        await SecureStorage.Default.SetAsync("user_role", result.Rol);
+                        await SecureStorage.Default.SetAsync("user_id", result.UsuarioId.ToString());
+                        await SecureStorage.Default.SetAsync("user_email", result.Email);
 
-                    // Inyectamos el token en el HttpClient para futuras peticiones
-                    _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", result.Token);
+                        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", result.Token);
 
-                    return true;
+                        return (true, "Inicio de sesión exitoso");
+                    }
+                }
+                else
+                {
+                    // Si hay error (400 o 401), leemos el mensaje específico que manda tu API
+                    var errorResult = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    return (false, errorResult?.Mensaje ?? "Error desconocido en el servidor.");
                 }
             }
-            return false;
+            catch (Exception ex)
+            {
+                return (false, $"Error de conexión: {ex.Message}");
+            }
+
+            return (false, "Error inesperado.");
         }
 
-        // Método para cerrar sesión
         public void Logout()
         {
             SecureStorage.Default.Remove("jwt_token");
             SecureStorage.Default.Remove("user_name");
             SecureStorage.Default.Remove("user_role");
+            SecureStorage.Default.Remove("user_id");
+            SecureStorage.Default.Remove("user_email");
             _httpClient.DefaultRequestHeaders.Authorization = null;
         }
     }
 
-    // Clase auxiliar actualizada con la estructura exacta de tu API
     public class LoginResponse
     {
         public string Token { get; set; } = string.Empty;
@@ -60,5 +69,11 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
         public string Nombre { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty;
+    }
+
+    // Clase para capturar los mensajes de error del backend
+    public class ErrorResponse
+    {
+        public string Mensaje { get; set; } = string.Empty;
     }
 }

@@ -8,7 +8,7 @@
 
 <MudThemeProvider Theme="@_temaTP6" />
 <MudDialogProvider />
-<MudSnackbarProvider />
+<MudSnackbarProvider PositionClass="Defaults.Classes.Position.BottomRight" PreventDuplicates="true" ShowCloseIcon="true" VisibleStateDuration="2500" />
 <MudPopoverProvider />
 
 <MudLayout>
@@ -29,27 +29,24 @@
         </AuthorizeView>
     </MudAppBar>
 
-    @* ¡ACÁ ESTABA EL PROBLEMA! Faltaba este bloque que contiene el @Body *@
+    @* CONTENIDO PRINCIPAL *@
     <MudMainContent Class="pb-16" Style="background-color: var(--mud-palette-background); min-height: 100vh;">
         <MudContainer MaxWidth="MaxWidth.Large">
             @Body
         </MudContainer>
     </MudMainContent>
 
-    @* BARRA INFERIOR (Única y dinámica) *@
-    <MudAppBar Bottom="true" Fixed="true" Style="background-color: #455A64;" Elevation="8" Class="px-1 py-2">
-
-        @* ESTE DIV ES EL QUE CENTRA TODO *@
-        <div class="d-flex justify-center w-100 gap-4">
-
+    @* BARRA INFERIOR *@
+    <MudAppBar Bottom="true" Fixed="true" Style="background-color: #455A64; padding: 0;" Elevation="8">
+        <div class="d-flex justify-space-evenly align-center w-100 px-1" style="height: 100%;">
             @* INICIO *@
-            <MudButton Href="/" Style="@ObtenerEstiloBoton("/")" DisableRipple="true">
+            <MudButton Href="/" Style="@ObtenerEstiloBoton("/")" DisableRipple="true" Padding="Padding.None">
                 <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Medium" />
                 <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Inicio</MudText>
             </MudButton>
 
             @* CATÁLOGO *@
-            <MudButton Href="/catalogo" Style="@ObtenerEstiloBoton("/catalogo")" DisableRipple="true">
+            <MudButton Href="/catalogo" Style="@ObtenerEstiloBoton("/catalogo")" DisableRipple="true" Padding="Padding.None">
                 <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Medium" />
                 <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Catálogo</MudText>
             </MudButton>
@@ -57,12 +54,12 @@
             @* ZONA ADMIN *@
             <AuthorizeView Roles="Admin">
                 <Authorized>
-                    <MudButton Href="/ingresos" Style="@ObtenerEstiloBoton("/ingresos")" DisableRipple="true">
+                    <MudButton Href="/ingresos" Style="@ObtenerEstiloBoton("/ingresos")" DisableRipple="true" Padding="Padding.None">
                         <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" />
                         <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Ingresos</MudText>
                     </MudButton>
 
-                    <MudButton Href="/reportes" Style="@ObtenerEstiloBoton("/reportes")" DisableRipple="true">
+                    <MudButton Href="/reportes" Style="@ObtenerEstiloBoton("/reportes")" DisableRipple="true" Padding="Padding.None">
                         <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Medium" />
                         <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Reportes</MudText>
                     </MudButton>
@@ -72,7 +69,7 @@
             @* ZONA CLIENTE *@
             <AuthorizeView Roles="Cliente">
                 <Authorized>
-                    <MudButton Href="/carrito" Style="@ObtenerEstiloBoton("/carrito")" DisableRipple="true">
+                    <MudButton Href="/carrito" Style="@ObtenerEstiloBoton("/carrito")" DisableRipple="true" Padding="Padding.None">
                         <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" />
                         <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Carrito</MudText>
                     </MudButton>
@@ -82,13 +79,12 @@
             @* LOGOUT *@
             <AuthorizeView>
                 <Authorized>
-                    <MudButton OnClick="CerrarSesion" Style="@ObtenerEstiloBoton("/logout")" DisableRipple="true">
+                    <MudButton OnClick="CerrarSesion" Style="@ObtenerEstiloBoton("/logout")" DisableRipple="true" Padding="Padding.None">
                         <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Medium" />
                         <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Salir</MudText>
                     </MudButton>
                 </Authorized>
             </AuthorizeView>
-
         </div>
     </MudAppBar>
 </MudLayout>
@@ -128,8 +124,7 @@
         var rutaActual = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
         var rutaFormateada = $"/{rutaActual}";
 
-        string estiloBase = "flex-direction: column; height: 100%; min-width: 65px; border-radius: 12px; transition: all 0.3s ease; text-transform: none;";
-
+        string estiloBase = "flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-width: 0; padding: 2px; border-radius: 8px; transition: all 0.3s ease; text-transform: none;";
         bool esBotonActivo = false;
 
         if (href == "/")
@@ -143,10 +138,10 @@
 
         if (esBotonActivo)
         {
-            return estiloBase + "color: #EEFF41; background-color: rgba(238, 255, 65, 0.15); box-shadow: 0 0 12px rgba(238, 255, 65, 0.2); font-weight: bold;";
+            return estiloBase + "color: #EEFF41; background-color: rgba(238, 255, 65, 0.15); font-weight: bold;";
         }
 
-        return estiloBase + "color: #AFB42B; background-color: transparent;";
+        return estiloBase + "color: #B0BEC5; background-color: transparent;";
     }
 
     private void CerrarSesion()

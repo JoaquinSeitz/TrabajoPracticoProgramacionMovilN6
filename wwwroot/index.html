@@ -2,26 +2,69 @@
 <html lang="en">
 <head>
     <style>
+        /* El tamaño por defecto es 16px. Al pasarlo a 13.5px, toda la app adopta tamaño móvil */
         html {
-            font-size: 14px;
+            font-size: 12px !important;
+        }
+
+        /* --- NUEVOS ESTILOS PARA LA PANTALLA DE CARGA --- */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #CFD8DC; /* El color Background de tu tema */
+            font-family: Arial, sans-serif;
+        }
+
+        .spinner {
+            border: 5px solid rgba(96, 125, 139, 0.2);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border-left-color: #607D8B; /* El color Primary de tu tema */
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: #455A64; /* El color de tu AppBar */
+            font-size: 18px;
+            font-weight: bold;
         }
     </style>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>TrabajoPracticoProgramacionMovilN6</title>
+    <title>Gestión de Stock TP6</title>
     <base href="/" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="TrabajoPracticoProgramacionMovilN6.styles.css" />
     <link rel="icon" href="data:,">
 </head>
-
 <body>
 
     <div class="status-bar-safe-area"></div>
 
-    <div id="app">Loading...</div>
+    <!-- PANTALLA DE CARGA PERSONALIZADA -->
+    <div id="app">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <div class="loading-text">Cargando aplicación...</div>
+        </div>
+    </div>
 
     <div id="blazor-error-ui" data-nosnippet>
         An unhandled error has occurred.
@@ -33,17 +76,15 @@
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 
     <script type="text/javascript">
-            // @ts-nocheck
-            function descargarArchivo(nombreArchivo, tipoContenido, contenidoBase64) {
-                const link = document.createElement('a');
-                link.download = nombreArchivo;
-                link.href = "data:" + tipoContenido + ";base64," + contenidoBase64;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+        // @ts-nocheck
+        function descargarArchivo(nombreArchivo, tipoContenido, contenidoBase64) {
+            const link = document.createElement('a');
+            link.download = nombreArchivo;
+            link.href = "data:" + tipoContenido + ";base64," + contenidoBase64;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
-
 </body>
-
 </html>

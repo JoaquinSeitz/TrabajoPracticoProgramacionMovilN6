@@ -1,0 +1,106 @@
+﻿@page "/registro"
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="4" Class="pa-6 rounded-lg">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary"><b>Crear Cuenta</b></MudText>
+                <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2">Completá tus datos para unirte como cliente</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+
+        <MudForm @ref="_form" Model="@_registroDTO">
+            <MudCardContent>
+                <MudTextField @bind-Value="_registroDTO.Nombre" For="@(() => _registroDTO.Nombre)" Label="Nombre Completo" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
+                <MudTextField @bind-Value="_registroDTO.Email" For="@(() => _registroDTO.Email)" Label="Correo Electrónico" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
+                <MudTextField @bind-Value="_registroDTO.Password" For="@(() => _registroDTO.Password)" Label="Contraseña" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+            </MudCardContent>
+
+            <MudCardActions Class="d-flex flex-column mt-2 px-2 pb-2 gap-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" OnClick="EjecutarRegistro" Disabled="@_cargando">
+                    @if (_cargando)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                        <MudText Class="ms-2">Guardando...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Registrarse</MudText>
+                    }
+                </MudButton>
+
+                <MudButton Href="/login" Variant="Variant.Text" Color="Color.Primary" Size="Size.Large" FullWidth="true" Disabled="@_cargando">
+                    <MudText>Volver al Login</MudText>
+                </MudButton>
+            </MudCardActions>
+        </MudForm>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private MudForm _form = default;
+    private RegistroUsuarioDTO _registroDTO = new RegistroUsuarioDTO();
+    private bool _cargando = false;
+
+    private async Task EjecutarRegistro()
+    {
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+        {
+            Snackbar.Add("Revisá los errores marcados en rojo.", Severity.Warning);
+            return;
+        }
+
+        _cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            // Forzamos el rol a Cliente por seguridad
+            _registroDTO.Rol = "Cliente";
+            var response = await Http.PostAsJsonAsync("/api/Usuarios/registro", _registroDTO);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("¡Cuenta creada exitosamente! Ya podés iniciar sesión.", Severity.Success);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add("No se pudo crear la cuenta. Es posible que el correo ya exista.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    // Clase DTO local con validaciones idénticas al backend
+    public class RegistroUsuarioDTO
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El email es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El formato del email no es válido.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [MinLength(6, ErrorMessage = "Debe tener al menos 6 caracteres.")]
+        public string Password { get; set; } = string.Empty;
+
+        public string Rol { get; set; } = string.Empty;
+    }
+}
